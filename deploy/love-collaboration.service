@@ -1,0 +1,54 @@
+# Systemd服务配置文件
+# 用途：将Flask应用配置为系统服务，实现开机自启和自动重启
+
+[Unit]
+Description=Love Collaboration - Flask SocketIO Application
+Documentation=https://github.com/yourusername/love-collaboration
+After=network.target
+Wants=network.target
+
+[Service]
+# 用户和组
+User=www-data
+Group=www-data
+
+# 工作目录（替换为你的项目路径）
+WorkingDirectory=/path/to/your/project
+
+# 虚拟环境Python路径（替换为你的虚拟环境路径）
+Environment=PATH=/path/to/your/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=FLASK_APP=app.py
+Environment=FLASK_ENV=production
+
+# 启动命令（使用eventlet作为异步服务器）
+ExecStart=/path/to/your/venv/bin/python -m eventlet -w 1 app:socketio
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# 重启策略
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# 进程管理
+Type=notify
+NotifyAccess=all
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/path/to/your/project
+
+# 日志设置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=love-collaboration
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

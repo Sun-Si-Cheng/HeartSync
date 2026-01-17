@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 双人协作爱心网页{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card login-card">
+        <div class="auth-header">
+            <div class="auth-icon">❤️</div>
+            <h1>欢迎回来</h1>
+            <p class="auth-subtitle">登录账号，开始爱心协作</p>
+        </div>
+
+        <form class="auth-form" method="POST" action="{{ url_for('login') }}" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div class="form-group">
+                <label for="username">用户名/邮箱</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="username" name="username" 
+                           placeholder="请输入用户名或邮箱"
+                           required
+                           autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" name="password" 
+                           placeholder="请输入密码"
+                           required
+                           autocomplete="current-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="remember" id="remember">
+                    <span class="checkmark"></span>
+                    <span>记住我</span>
+                </label>
+                <a href="#" class="forgot-password">忘记密码？</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-large">
+                登录
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>还没有账号？ <a href="{{ url_for('register') }}" class="auth-link">立即注册</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        button.textContent = '👁️';
+    }
+}
+
+// 表单验证
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    
+    if (!username) {
+        e.preventDefault();
+        showFlash('请输入用户名或邮箱', 'error');
+        return;
+    }
+    
+    if (!password) {
+        e.preventDefault();
+        showFlash('请输入密码', 'error');
+        return;
+    }
+});
+</script>
+{% endblock %}

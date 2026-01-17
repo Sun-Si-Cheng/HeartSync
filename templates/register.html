@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 双人协作爱心网页{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card register-card">
+        <div class="auth-header">
+            <div class="auth-icon">💝</div>
+            <h1>创建账号</h1>
+            <p class="auth-subtitle">加入我们，开始爱心协作之旅</p>
+        </div>
+
+        <form class="auth-form" method="POST" action="{{ url_for('register') }}" id="registerForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="username" name="username" 
+                           placeholder="3-20位，支持中英文、数字、下划线"
+                           required
+                           autocomplete="username">
+                </div>
+                <div class="form-help">
+                    <span class="help-icon">ℹ️</span>
+                    3-20位字符，支持字母、数字、下划线和中文
+                </div>
+                <div class="validation-message" id="username-msg"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">📧</span>
+                    <input type="email" id="email" name="email" 
+                           placeholder="请输入邮箱地址"
+                           required
+                           autocomplete="email">
+                </div>
+                <div class="validation-message" id="email-msg"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" name="password" 
+                           placeholder="至少6位，包含字母和数字"
+                           required
+                           autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
+                        👁️
+                    </button>
+                </div>
+                <div class="password-strength" id="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strength-fill"></div>
+                    </div>
+                    <div class="strength-text" id="strength-text"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">确认密码</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔐</span>
+                    <input type="password" id="confirm_password" name="confirm_password" 
+                           placeholder="再次输入密码"
+                           required
+                           autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', this)">
+                        👁️
+                    </button>
+                </div>
+                <div class="validation-message" id="confirm-msg"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-large" id="submitBtn">
+                注册
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>已有账号？ <a href="{{ url_for('login') }}" class="auth-link">立即登录</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let usernameTimer, emailTimer;
+
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        button.textContent = '👁️';
+    }
+}
+
+// 实时验证用户名
+document.getElementById('username').addEventListener('input', function() {
+    const username = this.value.trim();
+    const msgEl = document.getElementById('username-msg');
+    
+    clearTimeout(usernameTimer);
+    
+    if (username.length === 0) {
+        msgEl.textContent = '';
+        return;
+    }
+    
+    // 本地验证
+    if (username.length < 3 || username.length > 20) {
+        msgEl.textContent = '用户名长度必须在3-20位之间';
+        msgEl.className = 'validation-message error';
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
+        msgEl.textContent = '用户名只能包含字母、数字、下划线和中文';
+        msgEl.className = 'validation-message error';
+        return;
+    }
+    
+    // 异步验证
+    usernameTimer = setTimeout(() => {
+        fetch('/api/check-username', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: username})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                msgEl.textContent = '✓ 用户名可用';
+                msgEl.className = 'validation-message success';
+            } else {
+                msgEl.textContent = '✗ ' + data.message;
+                msgEl.className = 'validation-message error';
+            }
+        })
+        .catch(error => {
+            console.error('验证失败:', error);
+        });
+    }, 500);
+});
+
+// 实时验证邮箱
+document.getElementById('email').addEventListener('input', function() {
+    const email = this.value.trim();
+    const msgEl = document.getElementById('email-msg');
+    
+    clearTimeout(emailTimer);
+    
+    if (email.length === 0) {
+        msgEl.textContent = '';
+        return;
+    }
+    
+    // 本地验证
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        msgEl.textContent = '请输入有效的邮箱地址';
+        msgEl.className = 'validation-message error';
+        return;
+    }
+    
+    // 异步验证
+    emailTimer = setTimeout(() => {
+        fetch('/api/check-email', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.available) {
+                msgEl.textContent = '✓ 邮箱可用';
+                msgEl.className = 'validation-message success';
+            } else {
+                msgEl.textContent = '✗ ' + data.message;
+                msgEl.className = 'validation-message error';
+            }
+        })
+        .catch(error => {
+            console.error('验证失败:', error);
+        });
+    }, 500);
+});
+
+// 密码强度检测
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    const fill = document.getElementById('strength-fill');
+    const text = document.getElementById('strength-text');
+    
+    let strength = 0;
+    
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Za-z]/.test(password) && /[0-9]/.test(password)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+    
+    const levels = ['很弱', '弱', '中等', '强', '很强'];
+    const colors = ['#ff4d4d', '#ffa64d', '#ffdb4d', '#4dff4d', '#4da6ff'];
+    const widths = ['20%', '40%', '60%', '80%', '100%'];
+    
+    if (password.length === 0) {
+        fill.style.width = '0%';
+        text.textContent = '';
+    } else {
+        fill.style.width = widths[strength - 1] || '20%';
+        fill.style.backgroundColor = colors[strength - 1] || colors[0];
+        text.textContent = '密码强度：' + levels[strength - 1] || levels[0];
+    }
+});
+
+// 确认密码验证
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirm = this.value;
+    const msgEl = document.getElementById('confirm-msg');
+    
+    if (confirm.length === 0) {
+        msgEl.textContent = '';
+        return;
+    }
+    
+    if (password !== confirm) {
+        msgEl.textContent = '✗ 两次密码输入不一致';
+        msgEl.className = 'validation-message error';
+    } else {
+        msgEl.textContent = '✓ 密码一致';
+        msgEl.className = 'validation-message success';
+    }
+});
+
+// 表单提交验证
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    
+    if (username.length < 3 || username.length > 20) {
+        e.preventDefault();
+        showFlash('用户名长度必须在3-20位之间', 'error');
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
+        e.preventDefault();
+        showFlash('用户名只能包含字母、数字、下划线和中文', 'error');
+        return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        e.preventDefault();
+        showFlash('请输入有效的邮箱地址', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        e.preventDefault();
+        showFlash('密码长度至少6位', 'error');
+        return;
+    }
+    
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+        e.preventDefault();
+        showFlash('密码必须包含字母和数字', 'error');
+        return;
+    }
+    
+    if (password !== confirm) {
+        e.preventDefault();
+        showFlash('两次密码输入不一致', 'error');
+        return;
+    }
+});
+</script>
+{% endblock %}

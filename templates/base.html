@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}双人协作爱心网页{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <span class="heart-icon">❤️</span>
+                <span class="brand-text">爱心协作</span>
+            </div>
+            <div class="nav-menu">
+                {% if current_user.is_authenticated %}
+                    <span class="nav-user">
+                        欢迎，{{ current_user.nickname }}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="nav-link">退出</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">登录</a>
+                    <a href="{{ url_for('register') }}" class="nav-link nav-link-primary">注册</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <!-- Flash消息 -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            <span class="flash-icon">
+                                {% if category == 'success' %}✓{% else %}✗{% endif %}
+                            </span>
+                            {{ message }}
+                            <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>© 2025 双人协作爱心网页 - 让爱传递</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

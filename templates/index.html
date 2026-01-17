@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}爱心协作 - {{ room_code }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .heart {
+        animation: heartbeat 1.5s ease-in-out infinite;
+    }
+    
+    .heart.red {
+        animation: heartbeat-red 0.5s ease-in-out 3;
+    }
+    
+    @keyframes heartbeat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    @keyframes heartbeat-red {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); background-color: #ff4d4d; }
+    }
+    
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background-color: #ff0000;
+        animation: confetti-fall 3s ease-out forwards;
+    }
+    
+    @keyframes confetti-fall {
+        0% {
+            transform: translateY(-100vh) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+        }
+    }
+    
+    .love-card {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        z-index: 1000;
+        animation: card-appear 0.5s ease-out;
+        max-width: 90%;
+    }
+    
+    @keyframes card-appear {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+        }
+        100% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="collaboration-container">
+    <!-- 房间信息 -->
+    <div class="room-header">
+        <div class="room-info">
+            <span class="room-label">房间号</span>
+            <span class="room-code">{{ room_code }}</span>
+            <button class="btn btn-sm" onclick="shareRoom()">
+                🔗 分享
+            </button>
+        </div>
+        <div class="room-status">
+            <span class="status-dot {% if user2_username %}active{% endif %}"></span>
+            <span class="status-text">
+                {% if user2_username %}
+                    已连接
+                {% else %}
+                    等待对方加入...
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- 用户区域 -->
+    <div class="users-section">
+        <!-- 用户1 -->
+        <div class="user-card user-card-1">
+            <div class="user-avatar">
+                <span class="avatar-text">{{ current_user.nickname|first }}</span>
+            </div>
+            <div class="user-info">
+                <div class="user-name">{{ current_user.nickname }}</div>
+                <div class="user-label">我</div>
+            </div>
+        </div>
+
+        <!-- 连接线 -->
+        <div class="connection-line">
+            <div class="heart-icon-container">
+                <div class="heart" id="mainHeart">❤️</div>
+            </div>
+        </div>
+
+        <!-- 用户2 -->
+        <div class="user-card user-card-2">
+            <div class="user-avatar">
+                <span class="avatar-text" id="user2-avatar">?</span>
+            </div>
+            <div class="user-info">
+                <div class="user-name" id="user2-name">
+                    {% if user2_username %}
+                        {{ user2_username }}
+                    {% else %}
+                        等待对方...
+                    {% endif %}
+                </div>
+                <div class="user-label">TA</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 指令输入区 -->
+    <div class="commands-section">
+        <div class="command-card command-card-1">
+            <div class="command-header">
+                <span class="command-label">我的指令</span>
+                <span class="command-status" id="my-status"></span>
+            </div>
+            <input type="text" 
+                   id="my-command" 
+                   class="command-input"
+                   placeholder="输入配对指令..."
+                   autocomplete="off">
+            <div class="command-hint">
+                提示：{{ preset_pairs|map(attribute('description')|join('、') }}
+            </div>
+        </div>
+
+        <div class="command-card command-card-2">
+            <div class="command-header">
+                <span class="command-label">TA的指令</span>
+                <span class="command-status" id="other-status"></span>
+            </div>
+            <input type="text" 
+                   id="other-command" 
+                   class="command-input"
+                   disabled
+                   placeholder="等待TA输入...">
+            <div class="command-hint" id="other-hint">
+                {% if user2_username %}
+                    对方已加入房间
+                {% else %}
+                    等待对方加入...
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 预设指令 -->
+    <div class="preset-section">
+        <div class="preset-title">预设配对指令：</div>
+        <div class="preset-tags">
+            {% for pair in preset_pairs %}
+                <button class="preset-tag" onclick="selectPreset('{{ pair.pair[0] }}')">
+                    {{ pair.description }}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="message-area" id="messageArea"></div>
+</div>
+
+<!-- 纪念卡模态框 -->
+<div class="modal-overlay" id="loveModal" style="display: none;">
+    <div class="love-card">
+        <div class="love-icon">💕</div>
+        <h2>配对成功！</h2>
+        <p class="love-description">
+            <span id="loveDescription"></span>
+        </p>
+        <p class="love-time" id="loveTime"></p>
+        <p class="love-users">
+            {{ current_user.nickname }} & <span id="loveUser2"></span>
+        </p>
+        <button class="btn btn-primary" onclick="closeLoveModal()">
+            继续协作
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const roomCode = '{{ room_code }}';
+const currentUser = '{{ current_user.nickname }}';
+const socket = io();
+let userRole = null;
+let otherUsername = null;
+let lastCommand = '';
+
+// 连接SocketIO
+socket.on('connect', function() {
+    console.log('Socket connected');
+    // 加入房间
+    socket.emit('join_room', {
+        room_code: roomCode,
+        username: currentUser
+    });
+});
+
+// 监听房间信息
+socket.on('room_info', function(data) {
+    userRole = data.user_role;
+    
+    // 更新TA的信息
+    if (userRole === 'user1') {
+        otherUsername = data.user2_username;
+        updateOtherUser(otherUsername, data.user2_command);
+    } else {
+        otherUsername = data.user1_username;
+        updateOtherUser(otherUsername, data.user1_command);
+    }
+    
+    updateConnectionStatus(!!otherUsername);
+    showMessage('已加入房间 ' + roomCode, 'info');
+});
+
+// 监听用户加入
+socket.on('user_joined', function(data) {
+    otherUsername = data.username;
+    updateOtherUser(otherUsername, '');
+    updateConnectionStatus(true);
+    showMessage(data.username + ' 加入了房间', 'success');
+    
+    // 播放音效
+    playNotificationSound();
+});
+
+// 监听指令更新
+socket.on('command_updated', function(data) {
+    if (data.user_role !== userRole) {
+        // 对方的指令
+        document.getElementById('other-command').value = data.command;
+        document.getElementById('other-status').textContent = '已输入';
+        document.getElementById('other-status').className = 'command-status success';
+        
+        if (data.command) {
+            showMessage('TA已输入指令', 'info');
+            playNotificationSound();
+        }
+    }
+});
+
+// 监听匹配成功
+socket.on('match_success', function(data) {
+    showLoveModal(data);
+    createConfetti();
+    playSuccessSound();
+});
+
+// 监听匹配失败
+socket.on('match_failed', function(data) {
+    document.getElementById('mainHeart').classList.add('red');
+    setTimeout(() => {
+        document.getElementById('mainHeart').classList.remove('red');
+    }, 1500);
+    
+    showMessage(data.message, 'error');
+    shakeElement(document.getElementById('my-command'));
+    shakeElement(document.getElementById('other-command'));
+});
+
+// 输入指令
+document.getElementById('my-command').addEventListener('input', function() {
+    const command = this.value.trim();
+    
+    if (command === lastCommand) return;
+    lastCommand = command;
+    
+    // 更新状态
+    const statusEl = document.getElementById('my-status');
+    if (command) {
+        statusEl.textContent = '已输入';
+        statusEl.className = 'command-status success';
+    } else {
+        statusEl.textContent = '';
+        statusEl.className = 'command-status';
+    }
+    
+    // 发送到服务器
+    if (command) {
+        socket.emit('submit_command', {
+            room_code: roomCode,
+            command: command,
+            user_role: userRole
+        });
+    }
+});
+
+// 选择预设指令
+function selectPreset(command) {
+    const input = document.getElementById('my-command');
+    input.value = command;
+    input.focus();
+    
+    // 触发input事件
+    input.dispatchEvent(new Event('input'));
+}
+
+// 更新TA的用户信息
+function updateOtherUser(username, command) {
+    if (username) {
+        document.getElementById('user2-avatar').textContent = username.charAt(0).toUpperCase();
+        document.getElementById('user2-name').textContent = username;
+        document.getElementById('other-command').value = command || '';
+        document.getElementById('other-hint').textContent = '对方已加入房间';
+        
+        if (command) {
+            document.getElementById('other-status').textContent = '已输入';
+            document.getElementById('other-status').className = 'command-status success';
+        }
+    }
+}
+
+// 更新连接状态
+function updateConnectionStatus(connected) {
+    const dot = document.querySelector('.status-dot');
+    const text = document.querySelector('.status-text');
+    
+    if (connected) {
+        dot.classList.add('active');
+        text.textContent = '已连接';
+    } else {
+        dot.classList.remove('active');
+        text.textContent = '等待对方加入...';
+    }
+}
+
+// 分享房间
+function shareRoom() {
+    const url = window.location.href;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: '加入我的爱心协作房间',
+            text: `邀请你加入爱心协作房间 ${roomCode}`,
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            showMessage('链接已复制到剪贴板', 'success');
+        }).catch(() => {
+            prompt('复制这个链接分享给TA：', url);
+        });
+    }
+}
+
+// 显示爱心纪念卡
+function showLoveModal(data) {
+    document.getElementById('loveDescription').textContent = data.description;
+    document.getElementById('loveUser2').textContent = userRole === 'user1' 
+        ? data.user2_username 
+        : data.user1_username;
+    document.getElementById('loveTime').textContent = new Date(data.timestamp).toLocaleString('zh-CN');
+    
+    document.getElementById('loveModal').style.display = 'block';
+}
+
+// 关闭爱心纪念卡
+function closeLoveModal() {
+    document.getElementById('loveModal').style.display = 'none';
+    document.getElementById('my-command').value = '';
+    document.getElementById('other-command').value = '';
+    document.getElementById('my-status').textContent = '';
+    document.getElementById('other-status').textContent = '';
+    lastCommand = '';
+}
+
+// 创建彩带效果
+function createConfetti() {
+    const colors = ['#ff4d4d', '#ff9933', '#ffcc00', '#33cc33', '#3399ff', '#ff66cc'];
+    
+    for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 3000);
+        }, i * 30);
+    }
+}
+
+// 播放提示音
+function playNotificationSound() {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA');
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+}
+
+// 播放成功音效
+function playSuccessSound() {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQAA');
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+}
+
+// 元素抖动效果
+function shakeElement(element) {
+    element.style.animation = 'shake 0.5s';
+    setTimeout(() => {
+        element.style.animation = '';
+    }, 500);
+}
+
+// 显示消息
+function showMessage(message, type) {
+    const messageArea = document.getElementById('messageArea');
+    const messageEl = document.createElement('div');
+    messageEl.className = `message message-${type}`;
+    messageEl.textContent = message;
+    
+    messageArea.appendChild(messageEl);
+    
+    setTimeout(() => {
+        messageEl.remove();
+    }, 3000);
+}
+
+// 添加抖动动画样式
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
