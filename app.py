@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_socketio import SocketIO, join_room, leave_room, emit
@@ -7,17 +8,20 @@ import re
 from datetime import datetime
 from models import db, User
 from forms import RegistrationForm, LoginForm
+from config import load_config
+
+# 加载配置
+app_env = os.getenv('APP_ENV', 'development')
+config = load_config(app_env)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = secrets.token_hex(32)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.from_object(config)
 
 # 初始化数据库
 db.init_app(app)
 
 # 初始化SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins=config.CORS_ALLOWED_ORIGINS, async_mode=config.SOCKETIO_ASYNC_MODE)
 
 # 初始化Flask-Login
 login_manager = LoginManager()
@@ -370,6 +374,25 @@ def handle_leave_room(data):
                 room['user2_username'] = None
 
 # ============ 错误处理 ============
+
+@app.route('/health')
+def health_check():
+    """健康检查端点"""
+    from datetime import datetime
+    try:
+        # 检查数据库连接
+        db.session.execute(db.text('SELECT 1'))
+        db_status = 'healthy'
+    except Exception as e:
+        db_status = 'unhealthy'
+        app.logger.error(f'Health check failed: {str(e)}')
+    
+    return jsonify({
+        'status': db_status,
+        'timestamp': datetime.utcnow().isoformat(),
+        'environment': config.APP_ENV,
+        'version': getattr(config, 'VERSION', 'unknown')
+    }), 200 if db_status == 'healthy' else 503
 
 @app.errorhandler(404)
 def not_found(error):

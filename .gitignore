@@ -20,7 +20,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# 虚拟环境
+# Virtual Environment
 venv/
 env/
 ENV/
@@ -34,36 +34,43 @@ ENV/
 *~
 .DS_Store
 
-# 数据库
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# 日志
-*.log
+# Logs
 logs/
+*.log
 *.log.*
 
-# 环境变量
-.env
-.env.local
-.env.*.local
-
-# 测试
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
-.tox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# 临时文件
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Deployment
+deploy/package/
+backup/
+
+# Temporary files
 *.tmp
 *.bak
-*.backup
+*.swp
 
-# 部署相关
-deploy/logs/
-deploy/backup/
+# Node modules (if any frontend)
+node_modules/
 
-# 操作系统文件
-Thumbs.db
-Desktop.ini
+# Backup files
+*_backup
+*_old
+*_failed

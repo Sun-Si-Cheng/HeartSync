@@ -1,0 +1,19 @@
+# 测试依赖
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-flask==1.3.0
+pytest-socketio==0.0.6
+
+# 代码质量
+flake8==6.1.0
+pylint==3.0.2
+mypy==1.7.0
+black==23.11.0
+isort==5.12.0
+
+# 安全扫描
+safety==3.0.1
+bandit==1.7.5
+
+# 性能分析
+pytest-benchmark==4.0.0
